@@ -207,7 +207,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task BrowseExternalBaselineAsync()
+    private void BrowseExternalBaseline()
     {
         using var dialog = new System.Windows.Forms.FolderBrowserDialog
         {
@@ -224,7 +224,7 @@ public partial class MainViewModel : ObservableObject
 
             if (ExternalBaselineFiles.Count > 0)
             {
-                await SetBaselineAsync();
+                _ = SetBaselineAsync();
             }
             else
             {
