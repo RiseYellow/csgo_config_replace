@@ -46,6 +46,23 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _monitorStatus = "自动监控已关闭";
 
+    [ObservableProperty]
+    private string _externalBaselinePath = string.Empty;
+
+    public ObservableCollection<ConfigFileInfo> ExternalBaselineFiles { get; } = new();
+
+    public IEnumerable<ConfigFileInfo>? CurrentBaselineFiles
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(ExternalBaselinePath))
+                return ExternalBaselineFiles;
+            return SelectedAccount?.Account.ConfigFiles;
+        }
+    }
+
+    public bool HasExternalBaseline => !string.IsNullOrWhiteSpace(ExternalBaselinePath);
+
     public ObservableCollection<AccountItemViewModel> Accounts { get; } = new();
     public ObservableCollection<string> OperationLog { get; } = new();
 
@@ -178,9 +195,93 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+    partial void OnSelectedAccountChanged(AccountItemViewModel? value)
+    {
+        OnPropertyChanged(nameof(CurrentBaselineFiles));
+    }
+
+    partial void OnExternalBaselinePathChanged(string value)
+    {
+        OnPropertyChanged(nameof(CurrentBaselineFiles));
+        OnPropertyChanged(nameof(HasExternalBaseline));
+    }
+
+    [RelayCommand]
+    private void BrowseExternalBaseline()
+    {
+        using var dialog = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = "选择外部 config 文件夹",
+            SelectedPath = ExternalBaselinePath,
+            ShowNewFolderButton = false
+        };
+
+        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            ExternalBaselinePath = dialog.SelectedPath;
+            LoadExternalBaselineFiles();
+            AddLog($"已选择外部配置文件夹: {ExternalBaselinePath}");
+        }
+    }
+
+    [RelayCommand]
+    private void ClearExternalBaseline()
+    {
+        ExternalBaselinePath = string.Empty;
+        ExternalBaselineFiles.Clear();
+        AddLog("已清除外部配置文件夹");
+    }
+
+    private void LoadExternalBaselineFiles()
+    {
+        ExternalBaselineFiles.Clear();
+        if (string.IsNullOrWhiteSpace(ExternalBaselinePath) || !Directory.Exists(ExternalBaselinePath))
+            return;
+
+        foreach (var file in Directory.EnumerateFiles(ExternalBaselinePath))
+        {
+            var fi = new FileInfo(file);
+            ExternalBaselineFiles.Add(new ConfigFileInfo
+            {
+                FileName = fi.Name,
+                FullPath = fi.FullName,
+                Size = fi.Length,
+                LastWriteTime = fi.LastWriteTime,
+                IsSelected = true
+            });
+        }
+    }
+
     [RelayCommand]
     private async Task SetBaselineAsync()
     {
+        if (HasExternalBaseline)
+        {
+            var externalFiles = ExternalBaselineFiles
+                .Where(f => f.IsSelected)
+                .Select(f => f.FileName)
+                .ToList();
+
+            if (externalFiles.Count == 0)
+            {
+                StatusMessage = "请至少勾选一个配置文件";
+                return;
+            }
+
+            var externalAccount = new SteamAccount
+            {
+                SteamId3 = "外部配置",
+                CfgPath = ExternalBaselinePath,
+                HasCfgDirectory = true
+            };
+
+            await _configService.SetBaselineAsync(externalAccount, externalFiles);
+            await LoadBaselineAsync();
+            StatusMessage = "已将外部文件夹设为基准配置";
+            AddLog(StatusMessage);
+            return;
+        }
+
         if (SelectedAccount is null)
         {
             StatusMessage = "请先选择一个账号作为基准";
@@ -399,7 +500,12 @@ public partial class MainViewModel : ObservableObject
         var files = Baseline.IncludedFiles.Count == 0
             ? "全部文件"
             : string.Join(", ", Baseline.IncludedFiles);
-        BaselineSummary = $"源账号: {Baseline.SourceSteamId3}\n文件: {files}";
+
+        var source = Baseline.SourceSteamId3 == "外部配置"
+            ? $"外部文件夹: {Baseline.SourceCfgPath}"
+            : $"源账号: {Baseline.SourceSteamId3}";
+
+        BaselineSummary = $"{source}\n文件: {files}";
     }
 
     private void AddLog(string message)
