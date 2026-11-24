@@ -10,6 +10,9 @@ public partial class AccountItemViewModel : ObservableObject
     [ObservableProperty]
     private bool _isSelected;
 
+    [ObservableProperty]
+    private bool _isBaseline;
+
     public AccountItemViewModel(SteamAccount account)
     {
         Account = account;

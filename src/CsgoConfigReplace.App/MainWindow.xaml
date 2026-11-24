@@ -37,6 +37,10 @@
                         Command="{Binding SetBaselineCommand}"
                         Padding="12,6"
                         Margin="0,0,8,0"/>
+                <Button Content="选择外部config文件夹"
+                        Command="{Binding BrowseExternalBaselineCommand}"
+                        Padding="12,6"
+                        Margin="0,0,8,0"/>
                 <Button Content="一键应用到勾选账号"
                         Command="{Binding ApplyCommand}"
                         Background="#FF2E7D32"
@@ -71,6 +75,24 @@
                           GridLinesVisibility="Horizontal">
                     <DataGrid.Columns>
                         <DataGridCheckBoxColumn Header="选择" Binding="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                        <DataGridTemplateColumn Header="基准" Width="50">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="√" Foreground="#FF2E7D32" FontWeight="Bold" HorizontalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsBaseline}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn Header="昵称" Binding="{Binding Nickname}" IsReadOnly="True" Width="120"/>
                         <DataGridTextColumn Header="SteamID3" Binding="{Binding SteamId3}" IsReadOnly="True" Width="*"/>
                         <DataGridTextColumn Header="状态" Binding="{Binding DisplayStatus}" IsReadOnly="True" Width="120"/>
@@ -84,20 +106,6 @@
             <GroupBox Grid.Column="1" Header="基准配置">
                 <StackPanel Margin="8">
                     <TextBlock Text="{Binding BaselineSummary}" TextWrapping="Wrap" Margin="0,0,0,12"/>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <Button Content="选择外部config文件夹"
-                                Command="{Binding BrowseExternalBaselineCommand}"
-                                Padding="8,4"
-                                Margin="0,0,4,0"/>
-                        <Button Content="清除"
-                                Command="{Binding ClearExternalBaselineCommand}"
-                                Padding="8,4"/>
-                    </StackPanel>
-                    <TextBlock Text="{Binding ExternalBaselinePath}"
-                               Foreground="Gray"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,8"/>
 
                     <TextBlock Text="基准配置文件（勾选需要复制的文件）：" FontWeight="Bold" Margin="0,0,0,4"/>
                     <ListBox ItemsSource="{Binding CurrentBaselineFiles}">

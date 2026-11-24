@@ -197,6 +197,14 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnSelectedAccountChanged(AccountItemViewModel? value)
     {
+        // Switching account selection exits external baseline mode.
+        if (HasExternalBaseline)
+        {
+            ExternalBaselinePath = string.Empty;
+            ExternalBaselineFiles.Clear();
+            AddLog("已切换为账号基准模式");
+        }
+
         OnPropertyChanged(nameof(CurrentBaselineFiles));
     }
 
@@ -242,14 +250,6 @@ public partial class MainViewModel : ObservableObject
             return nestedCfg;
 
         return selectedPath;
-    }
-
-    [RelayCommand]
-    private void ClearExternalBaseline()
-    {
-        ExternalBaselinePath = string.Empty;
-        ExternalBaselineFiles.Clear();
-        AddLog("已清除外部配置文件夹");
     }
 
     private void LoadExternalBaselineFiles()
@@ -507,6 +507,17 @@ public partial class MainViewModel : ObservableObject
     {
         Baseline = await _configService.GetBaselineAsync();
         UpdateBaselineSummary();
+        UpdateBaselineAccountMarkers();
+    }
+
+    private void UpdateBaselineAccountMarkers()
+    {
+        foreach (var account in Accounts)
+        {
+            account.IsBaseline = Baseline is not null
+                                 && Baseline.SourceSteamId3 != "外部配置"
+                                 && account.SteamId3 == Baseline.SourceSteamId3;
+        }
     }
 
     private void UpdateBaselineSummary()
