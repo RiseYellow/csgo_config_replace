@@ -87,7 +87,7 @@
 
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <Button Content="选择外部config文件夹"
-                                Command="{Binding BrowseExternalBaselineCommand}"
+                                Command="{Binding BrowseExternalBaselineAsyncCommand}"
                                 Padding="8,4"
                                 Margin="0,0,4,0"/>
                         <Button Content="清除"

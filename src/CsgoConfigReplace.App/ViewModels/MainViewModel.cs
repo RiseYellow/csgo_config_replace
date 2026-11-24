@@ -207,21 +207,41 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void BrowseExternalBaseline()
+    private async Task BrowseExternalBaselineAsync()
     {
         using var dialog = new System.Windows.Forms.FolderBrowserDialog
         {
-            Description = "选择外部 config 文件夹",
+            Description = "选择外部 config 文件夹（支持账号根目录或 cfg 目录）",
             SelectedPath = ExternalBaselinePath,
             ShowNewFolderButton = false
         };
 
         if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
         {
-            ExternalBaselinePath = dialog.SelectedPath;
+            ExternalBaselinePath = ResolveCfgPath(dialog.SelectedPath);
             LoadExternalBaselineFiles();
             AddLog($"已选择外部配置文件夹: {ExternalBaselinePath}");
+
+            if (ExternalBaselineFiles.Count > 0)
+            {
+                await SetBaselineAsync();
+            }
+            else
+            {
+                StatusMessage = "所选文件夹中没有找到 config 文件";
+                AddLog(StatusMessage);
+            }
         }
+    }
+
+    private static string ResolveCfgPath(string selectedPath)
+    {
+        // If user selected an account root (e.g. userdata/195854210), dive into 730/local/cfg.
+        var nestedCfg = Path.Combine(selectedPath, "730", "local", "cfg");
+        if (Directory.Exists(nestedCfg))
+            return nestedCfg;
+
+        return selectedPath;
     }
 
     [RelayCommand]
